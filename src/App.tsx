@@ -60,7 +60,7 @@ function App() {
     }
 
     async function handleView(client: Client) {
-        const data = await viewClient(client.name);
+        const data = await viewClient(client.public_key);
         setConfig(data.config);
         setActiveClient(client);
         setDialogOpen(true);
@@ -72,13 +72,13 @@ function App() {
         load();
     }
 
-    async function handleDownload(file: string) {
-        const data = await viewClient(file);
+    async function handleDownload(public_key: string) {
+        const data = await viewClient(public_key);
         const blob = new Blob([data.config], { type: "text/plain" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `${file}.conf`;
+        a.download = `${data.name}.conf`;
         a.click();
         URL.revokeObjectURL(url);
     }
@@ -186,7 +186,7 @@ function App() {
                                             variant="secondary"
                                             onClick={() =>
                                                 handleDownload(
-                                                    activeClient.name,
+                                                    activeClient.public_key,
                                                 )
                                             }
                                         >

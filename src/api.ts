@@ -2,10 +2,10 @@ import { API_BASE, USE_MOCK } from "./config";
 import { mockClients, mockConfig, mockStats } from "./mock";
 import { type Client, type ClientStat } from "./types";
 
-export async function getClients(): Promise<Client[]>{
+export async function getClients(): Promise<Client[]> {
     if (USE_MOCK) {
-        return new Promise((resolve) => 
-            setTimeout(() => resolve(mockClients), 500)
+        return new Promise((resolve) =>
+            setTimeout(() => resolve(mockClients), 500),
         );
     }
 
@@ -13,17 +13,17 @@ export async function getClients(): Promise<Client[]>{
     return res.json();
 }
 
-export async function createClient(name: string){
+export async function createClient(name: string) {
     if (USE_MOCK) {
         return new Promise((resolve) =>
-        setTimeout(
-            () =>
-            resolve({
-                config: mockConfig,
-                ip: "10.0.0.99",
-            }),
-            500
-        )
+            setTimeout(
+                () =>
+                    resolve({
+                        config: mockConfig,
+                        ip: "10.0.0.99",
+                    }),
+                500,
+            ),
         );
     }
 
@@ -32,34 +32,32 @@ export async function createClient(name: string){
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name })
+        body: JSON.stringify({ name }),
     });
 
-    
-
-    if(!res.ok) throw new Error("Failed");
+    if (!res.ok) throw new Error("Failed");
     return res.json();
 }
 
-export async function viewClient(file: string){
+export async function viewClient(public_key: string) {
     if (USE_MOCK) {
         return { config: mockConfig };
     }
 
-    const res = await fetch(`${API_BASE}/view/${file}`);
+    const res = await fetch(`${API_BASE}/view/${public_key}`);
     return res.json();
 }
 
-export async function deleteClient(public_key: string){
-    if(USE_MOCK) return;
+export async function deleteClient(public_key: string) {
+    if (USE_MOCK) return;
 
     await fetch(`${API_BASE}/delete/${public_key}`, {
-        method: "DELETE"
-    })
+        method: "DELETE",
+    });
 }
 
 export async function getStats(): Promise<Record<string, ClientStat>> {
-    if(USE_MOCK) {
+    if (USE_MOCK) {
         return mockStats;
     }
 
