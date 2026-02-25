@@ -1,85 +1,218 @@
 import { useState, useEffect } from "react";
 import {
-  getClients,
-  createClient,
-  viewClient,
-  deleteClient,
-  getStats
+    getClients,
+    createClient,
+    viewClient,
+    deleteClient,
+    getStats,
 } from "./api";
 
-import {type Client, type ClientStat} from "./types";
+import { type Client, type ClientStat } from "./types";
+import { ThemeProvider } from "./components/theme-provider";
+import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
+import { Badge } from "./components/ui/badge";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "./components/ui/dialog";
 
 function App() {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [name, setName] = useState("");
-  const [config, setConfig] = useState("");
+    const [clients, setClients] = useState<Client[]>([]);
+    const [name, setName] = useState("");
+    const [config, setConfig] = useState("");
+    const [stats, setStats] = useState<Record<string, ClientStat>>({});
 
-  const [stats, setStats] = useState<Record<string, ClientStat>>({});
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [activeClient, setActiveClient] = useState<Client | null>(null);
 
-  async function load() {
-    const data = await getClients();
-    const statsData = await getStats();
-    setClients(data);
-    setStats(statsData);
-  }
+    async function load() {
+        const data = await getClients();
+        const statsData = await getStats();
+        setClients(data);
+        setStats(statsData);
+    }
 
-  useEffect(() => {
-    load();
-  }, [])
+    useEffect(() => {
+        load();
+    }, []);
 
-  async function handleCreate(){
-    const data = await createClient(name);
-    setName("");
-    setConfig(data.config);
-    load();
-  }
+    async function handleCreate() {
+        const data = await createClient(name);
 
-  async function handleView(file: string){
-    const data = await viewClient(file);
-    setConfig(data.config);
-  }
+        setName("");
+        setConfig(data.config);
 
-  async function handleDelete(public_key: string){
-    await deleteClient(public_key);
-    load();
-  }
+        setActiveClient({
+            name: data.name,
+            public_key: data.public_key,
+            ip: data.ip,
+        });
 
-  return (
-    <div style={{padding: 40}}>
-      <h2>WireGuard Control Panel</h2>
+        setDialogOpen(true);
 
-      <input placeholder="device name" type="text" onChange={(e) => setName(e.target.value)}/>
-      <button onClick={handleCreate}>Create</button>
+        load();
+    }
 
-      <h3>Clients</h3>
-      <ul>
-        {clients.map((client) => {
-        const stat = stats[client.public_key];
+    async function handleView(client: Client) {
+        const data = await viewClient(client.name);
+        setConfig(data.config);
+        setActiveClient(client);
+        setDialogOpen(true);
+    }
 
-        
-          return (
-            <li key={client.public_key}>
-              <strong>{client.name}</strong> ({client.ip})
+    async function handleDelete(public_key: string) {
+        await deleteClient(public_key);
+        setDialogOpen(false);
+        load();
+    }
 
-              <button onClick={() => handleView(client.name)}>View</button>
-              <button onClick={() => handleDelete(client.public_key)}>Delete</button>
+    async function handleDownload(file: string) {
+        const data = await viewClient(file);
+        const blob = new Blob([data.config], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${file}.conf`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
 
-              {stat && (
-                <div style={{ fontSize: 12, marginTop: 4 }}>
-                  RX: {(stat.rx / 1024).toFixed(1)} KB |
-                  TX: {(stat.tx / 1024).toFixed(1)} KB
+    return (
+        <ThemeProvider>
+            <div className="min-h-screen bg-muted p-8">
+                <div className="max-w-5xl mx-auto space-y-6">
+                    <h1 className="text-3xl font-bold tracking-tight">
+                        WireGuard Control Panel
+                    </h1>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Create Client</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex gap-4">
+                            <Input
+                                className="border rounded px-3 py-2 w-full"
+                                placeholder="Client name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                            />
+                            <Button onClick={handleCreate}>Create</Button>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Clients</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {clients.map((client) => (
+                                <div
+                                    key={client.public_key}
+                                    className="flex justify-between items-center border p-4 rounded-lg"
+                                >
+                                    <div>
+                                        <p className="font-medium">
+                                            {client.name}
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {client.ip}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex flex-col items-end gap-1">
+                                        {stats[client.public_key] && (
+                                            <p className="text-sm text-muted-foreground">
+                                                RX:{" "}
+                                                {(
+                                                    stats[client.public_key]
+                                                        .rx / 1024
+                                                ).toFixed(1)}{" "}
+                                                KB | TX:{" "}
+                                                {(
+                                                    stats[client.public_key]
+                                                        .tx / 1024
+                                                ).toFixed(1)}{" "}
+                                                KB
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                        <Badge variant="secondary">
+                                            Online
+                                        </Badge>
+                                        <Button
+                                            size="sm"
+                                            onClick={() => handleView(client)}
+                                        >
+                                            View
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+
+                    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Client Config</DialogTitle>
+                                <DialogDescription>
+                                    {activeClient && (
+                                        <>
+                                            WireGuard configuration for{" "}
+                                            <strong>{activeClient.name}</strong>
+                                            .
+                                        </>
+                                    )}
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
+                                {config}
+                            </pre>
+
+                            <DialogFooter>
+                                {activeClient && (
+                                    <>
+                                        <Button
+                                            size="sm"
+                                            variant="secondary"
+                                            onClick={() =>
+                                                handleDownload(
+                                                    activeClient.name,
+                                                )
+                                            }
+                                        >
+                                            Download
+                                        </Button>
+
+                                        <Button
+                                            size="sm"
+                                            variant="destructive"
+                                            onClick={() =>
+                                                handleDelete(
+                                                    activeClient.public_key,
+                                                )
+                                            }
+                                        >
+                                            Delete
+                                        </Button>
+                                    </>
+                                )}
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                 </div>
-              )}
-            </li>
-          )
-        }
-      )}
-      </ul>
-
-      <h3>Config</h3>
-      <pre>{config}</pre>
-    </div>
-  )
+            </div>
+        </ThemeProvider>
+    );
 }
 
 export default App;
