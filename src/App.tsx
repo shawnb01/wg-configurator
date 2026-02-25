@@ -22,6 +22,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from "./components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
+import { FileCog, QrCodeIcon } from "lucide-react";
+import QRCode from "react-qrcode-logo";
 
 function App() {
     const [clients, setClients] = useState<Client[]>([]);
@@ -180,14 +183,52 @@ function App() {
                                     )}
                                 </DialogDescription>
                             </DialogHeader>
-
-                            <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
-                                {config}
-                            </pre>
-
+                            <Tabs
+                                defaultValue="config"
+                                className="w-full flex flex-col"
+                            >
+                                <TabsList className="bg-muted/50 border-b">
+                                    <TabsTrigger
+                                        value="config"
+                                        className="data-[state=active]:border-primary not-first:border-l"
+                                    >
+                                        <FileCog className="inline" />
+                                        Config
+                                    </TabsTrigger>
+                                    <TabsTrigger
+                                        value="qr"
+                                        className="data-[state=active]:border-primary not-first:border-l"
+                                    >
+                                        <QrCodeIcon className="inline" />
+                                        QR Code
+                                    </TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="config" className="pt-4">
+                                    <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
+                                        {config}
+                                    </pre>
+                                </TabsContent>
+                                <TabsContent
+                                    value="qr"
+                                    className="pt-4 flex justify-center"
+                                >
+                                    <QRCode value={config} size={256} />
+                                </TabsContent>
+                            </Tabs>
                             <DialogFooter>
                                 {activeClient && (
                                     <>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                navigator.clipboard.writeText(
+                                                    config,
+                                                )
+                                            }
+                                        >
+                                            Copy
+                                        </Button>
                                         <Button
                                             size="sm"
                                             variant="secondary"
@@ -197,9 +238,8 @@ function App() {
                                                 )
                                             }
                                         >
-                                            Download
+                                            Download Config
                                         </Button>
-
                                         <Button
                                             size="sm"
                                             variant="destructive"

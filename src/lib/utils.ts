@@ -15,5 +15,5 @@ export function formatBytes(bytes: number): string {
 
 export function isClientOnline(lastHandshake: number): boolean {
     const now = Date.now() / 1000;
-    return lastHandshake > now - 120;
+    return lastHandshake > now - 300;
 }
