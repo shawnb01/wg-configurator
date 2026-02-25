@@ -8,6 +8,7 @@ import {
 } from "./api";
 
 import { type Client, type ClientStat } from "./types";
+import { formatBytes, isClientOnline } from "./lib/utils";
 import { ThemeProvider } from "./components/theme-provider";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
@@ -102,7 +103,9 @@ function App() {
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                             />
-                            <Button onClick={handleCreate}>Create</Button>
+                            <Button disabled={!name} onClick={handleCreate}>
+                                Create
+                            </Button>
                         </CardContent>
                     </Card>
 
@@ -129,24 +132,28 @@ function App() {
                                         {stats[client.public_key] && (
                                             <p className="text-sm text-muted-foreground">
                                                 RX:{" "}
-                                                {(
-                                                    stats[client.public_key]
-                                                        .rx / 1024
-                                                ).toFixed(1)}{" "}
-                                                KB | TX:{" "}
-                                                {(
-                                                    stats[client.public_key]
-                                                        .tx / 1024
-                                                ).toFixed(1)}{" "}
-                                                KB
+                                                {formatBytes(
+                                                    stats[client.public_key].rx,
+                                                )}{" "}
+                                                | TX:{" "}
+                                                {formatBytes(
+                                                    stats[client.public_key].tx,
+                                                )}
                                             </p>
                                         )}
                                     </div>
 
                                     <div className="flex items-center gap-3">
-                                        <Badge variant="secondary">
-                                            Online
-                                        </Badge>
+                                        {isClientOnline(
+                                            stats[client.public_key]
+                                                ?.last_handshake || 0,
+                                        ) ? (
+                                            <Badge>Online</Badge>
+                                        ) : (
+                                            <Badge variant="destructive">
+                                                Offline
+                                            </Badge>
+                                        )}
                                         <Button
                                             size="sm"
                                             onClick={() => handleView(client)}
@@ -196,6 +203,10 @@ function App() {
                                         <Button
                                             size="sm"
                                             variant="destructive"
+                                            disabled={isClientOnline(
+                                                stats[activeClient.public_key]
+                                                    .last_handshake,
+                                            )}
                                             onClick={() =>
                                                 handleDelete(
                                                     activeClient.public_key,
